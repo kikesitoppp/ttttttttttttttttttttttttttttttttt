@@ -27,7 +27,7 @@ canvas.height = window.innerHeight;
 const conejoIzq = {x: 50, y: canvas.height - 80};
 const conejoDer = {x: canvas.width - 50, y: canvas.height - 80};
 
-// Función para generar puntos de un corazón
+// Generar puntos para el corazón grande
 function generarPuntosCorazon(cx, cy, size, step=0.15){
     const puntos = [];
     for(let t = 0; t < Math.PI*2; t += step){
@@ -38,7 +38,7 @@ function generarPuntosCorazon(cx, cy, size, step=0.15){
     return puntos;
 }
 
-// Función para generar puntos del texto TE AMO
+// Generar puntos para el texto TE AMO
 function generarPuntosTexto(text, xOffset, yOffset, size=15){
     const tempCanvas = document.createElement("canvas");
     tempCanvas.width = canvas.width;
@@ -59,38 +59,58 @@ function generarPuntosTexto(text, xOffset, yOffset, size=15){
     return puntos;
 }
 
-// Crear todas las posiciones destino
+// Posiciones destino para formar figura
 const puntosCorazon = generarPuntosCorazon(canvas.width/2, canvas.height/2 + 50, 15);
 const puntosTexto = generarPuntosTexto("TE AMO", canvas.width/2 - 200, canvas.height/4, 12);
-const puntosDestino = [...puntosTexto, ...puntosCorazon];
+let puntosDestino = [...puntosTexto, ...puntosCorazon];
 
 // Corazones activos
 const corazones = [];
 
-// Función para disparar corazones desde un conejo
+// Función para disparar corazones
 function dispararCorazon(origen){
-    if(puntosDestino.length===0) return;
-    const destino = puntosDestino.splice(Math.floor(Math.random()*puntosDestino.length),1)[0];
+    let destino = null;
+    if(puntosDestino.length>0){
+        // Si todavía quedan puntos por llenar
+        destino = puntosDestino.splice(Math.floor(Math.random()*puntosDestino.length),1)[0];
+    } else {
+        // Si ya se formó todo, destino aleatorio para que siga flotando
+        destino = {x: Math.random()*canvas.width, y: Math.random()*canvas.height/2};
+    }
     corazones.push({
         x: origen.x,
         y: origen.y,
         destino,
         size: 8,
-        velocidad: 0.03 + Math.random()*0.02
+        velocidad: 0.02 + Math.random()*0.03,
+        flotando: puntosDestino.length === 0
     });
 }
 
-// Animación de corazones
+// Dibujar un corazón pequeño
+function dibujarCorazon(x, y, size=10){
+    ctx.fillStyle = "red";
+    ctx.font = `${size}px Arial`;
+    ctx.fillText("❤", x, y);
+}
+
+// Animación
 function animar(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    
+
     // Dibujar corazones
     corazones.forEach(c=>{
-        c.x += (c.destino.x - c.x)*c.velocidad;
-        c.y += (c.destino.y - c.y)*c.velocidad;
-        ctx.fillStyle = "red";
-        ctx.font = `${c.size}px Arial`;
-        ctx.fillText("❤", c.x, c.y);
+        if(c.flotando){
+            // Se mueven suavemente hacia arriba y un poco aleatorio
+            c.y -= 1 + Math.random()*1;
+            c.x += (Math.random()-0.5)*1;
+            if(c.y < -20) c.y = canvas.height; // reaparecen abajo
+        } else {
+            // Mover hacia su destino
+            c.x += (c.destino.x - c.x)*c.velocidad;
+            c.y += (c.destino.y - c.y)*c.velocidad;
+        }
+        dibujarCorazon(c.x, c.y, c.size);
     });
 
     // Dibujar conejos
@@ -101,7 +121,7 @@ function animar(){
     requestAnimationFrame(animar);
 }
 
-// Disparar corazones continuamente
+// Rafaga continua de corazones
 setInterval(()=>dispararCorazon(conejoIzq), 50);
 setInterval(()=>dispararCorazon(conejoDer), 50);
 

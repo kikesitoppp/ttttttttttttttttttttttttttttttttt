@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>QR en Corazón</title>
+  <title>Te Amo ❤️</title>
   <style>
     body {
       margin: 0;
@@ -14,82 +14,96 @@
       align-items: center;
       height: 100vh;
     }
-    .corazon {
-      position: relative;
-      width: 300px;
-      height: 270px;
-      background: red;
-      transform: rotate(-45deg);
-      margin-top: -50px;
-      box-shadow: 0 0 30px rgba(255,0,0,0.6);
-    }
-    .corazon::before,
-    .corazon::after {
-      content: "";
+    canvas {
       position: absolute;
-      width: 300px;
-      height: 300px;
-      border-radius: 50%;
-      background: red;
-      box-shadow: 0 0 30px rgba(255,0,0,0.6);
-    }
-    .corazon::before {
-      top: -150px;
-      left: 0;
-    }
-    .corazon::after {
-      left: 150px;
       top: 0;
-    }
-    .teamo {
-      position: absolute;
-      top: 20px;
-      font-size: 50px;
-      font-weight: bold;
-      color: red;
-      text-shadow: 0 0 10px white, 0 0 20px pink;
+      left: 0;
     }
     .conejo {
       position: absolute;
-      bottom: 0;
+      bottom: 20px;
       font-size: 60px;
     }
     .conejo.izq { left: 5%; }
     .conejo.der { right: 5%; transform: scaleX(-1); }
-    .corazoncito {
-      position: absolute;
-      color: red;
-      font-size: 20px;
-      animation: volar 2s linear forwards;
-    }
-    @keyframes volar {
-      from { transform: translate(0,0) scale(1); opacity: 1; }
-      to { transform: translate(200px,-400px) scale(0.5); opacity: 0; }
-    }
   </style>
 </head>
 <body>
-  <div class="teamo">TE AMO</div>
   <div class="conejo izq">🐇</div>
   <div class="conejo der">🐇</div>
-  <div class="corazon"></div>
+
+  <canvas id="lienzo"></canvas>
 
   <script>
-    function lanzarConejito(clase, direccion) {
-      const cora = document.createElement("div");
-      cora.className = "corazoncito";
-      cora.style.left = (clase === 'izq' ? '80px' : (window.innerWidth - 100) + 'px');
-      cora.style.bottom = "80px";
-      cora.textContent = "❤";
-      document.body.appendChild(cora);
-      cora.animate([
-        { transform: 'translate(0,0)', opacity: 1 },
-        { transform: `translate(${direccion * 200}px,-400px)`, opacity: 0 }
-      ], { duration: 2000, iterations: 1 });
-      setTimeout(()=>cora.remove(),2000);
+    const canvas = document.getElementById("lienzo");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let corazones = [];
+
+    // Generar puntos en forma de corazón
+    function generarFormaCorazon() {
+      const puntos = [];
+      for (let t = 0; t < Math.PI * 2; t += 0.1) {
+        let x = 16 * Math.pow(Math.sin(t), 3);
+        let y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+        puntos.push({x: x * 15 + canvas.width/2, y: y * 15 + canvas.height/2});
+      }
+      return puntos;
     }
-    setInterval(()=>lanzarConejito('izq',1),500);
-    setInterval(()=>lanzarConejito('der',-1),500);
+
+    // Generar puntos para el texto TE AMO
+    function generarFormaTexto() {
+      const puntos = [];
+      ctx.font = "80px Arial Black";
+      ctx.fillText("TE AMO", canvas.width/2 - 150, canvas.height/4);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      for (let y = 0; y < imageData.height; y += 6) {
+        for (let x = 0; x < imageData.width; x += 6) {
+          let index = (y * imageData.width + x) * 4;
+          if (imageData.data[index+3] > 128) {
+            puntos.push({x:x, y:y});
+          }
+        }
+      }
+      return puntos;
+    }
+
+    const puntosCorazon = generarFormaCorazon();
+    const puntosTexto = generarFormaTexto();
+    let todosPuntos = [...puntosTexto, ...puntosCorazon];
+    let indice = 0;
+
+    function lanzarCorazon() {
+      if (indice < todosPuntos.length) {
+        const objetivo = todosPuntos[indice];
+        corazones.push({
+          x: Math.random() < 0.5 ? 100 : canvas.width - 100,
+          y: canvas.height - 100,
+          objetivo: objetivo,
+          progreso: 0
+        });
+        indice++;
+      }
+    }
+
+    function animar() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      corazones.forEach(c => {
+        c.progreso += 0.02;
+        c.x = c.x + (c.objetivo.x - c.x) * c.progreso;
+        c.y = c.y + (c.objetivo.y - c.y) * c.progreso;
+        ctx.fillStyle = "red";
+        ctx.font = "20px Arial";
+        ctx.fillText("❤", c.x, c.y);
+      });
+      requestAnimationFrame(animar);
+    }
+
+    setInterval(lanzarCorazon, 150);
+    animar();
   </script>
 </body>
 </html>

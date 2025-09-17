@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>QR en forma de corazón — Te amo</title>
+  <style>
+    :root{--bg:#fdeef5;--pink:#ff6b9a;--rose:#ff4571}
+    html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    body{background:linear-gradient(180deg,#fff 0%,var(--bg) 100%);display:flex;align-items:center;justify-content:center}
+    .stage{width:980px;height:640px;position:relative;box-shadow:0 8px 30px rgba(0,0,0,.12);border-radius:16px;overflow:hidden;background:radial-gradient(circle at 20% 20%, #fff 0%, #fff0 40%),linear-gradient(180deg,#fff0,#fff);}
+    header{position:absolute;top:18px;left:0;right:0;text-align:center;z-index:10}
+    header h1{margin:0;font-size:42px;letter-spacing:4px;color:#b02a4b;text-shadow:0 3px 0 #fff}
+    #loveText{position:absolute;left:50%;transform:translateX(-50%);top:28px;pointer-events:none;z-index:15}
+    .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:5}
+    .qr-wrap{width:260px;height:260px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#fff 0%,#ffeef5 100%);border-radius:18px;padding:12px;box-shadow:0 6px 18px rgba(176,42,75,.12);}
+    .qr{width:100%;height:100%;display:block}
+    .qr-wrap{clip-path: path('M130 20 C170 20 210 60 210 100 C210 160 130 210 130 210 C130 210 50 160 50 100 C50 60 90 20 130 20 Z');}
+    .controls{display:flex;gap:8px}
+    .btn{background:var(--pink);color:white;padding:8px 12px;border-radius:10px;border:0;cursor:pointer;font-weight:600}
+    .small{font-size:13px;padding:6px 10px}
+    .rabbit{position:absolute;top:50%;transform:translateY(-50%);width:160px;height:160px;z-index:8}
+    .rabbit.left{left:12px}
+    .rabbit.right{right:12px;transform:translateY(-50%) scaleX(-1)}
+    #heartCanvas{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+    .note{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:13px;color:#8a4960}
+    @media (max-width:1024px){.stage{width:92vw;height:70vh}}
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div id="loveText"></div>
+    <div class="rabbit left" aria-hidden>
+      <svg viewBox="0 0 200 200" width="160" height="160">
+        <g transform="translate(10,8)">
+          <ellipse cx="62" cy="108" rx="44" ry="44" fill="#fff" stroke="#d46" stroke-width="3"/>
+          <ellipse cx="40" cy="82" rx="30" ry="36" fill="#fff" stroke="#d46" stroke-width="3"/>
+          <circle cx="35" cy="68" r="6" fill="#2d2d2d"/>
+          <path d="M78 72 L120 72 L140 82 L120 92 L78 92 z" fill="#333" />
+          <circle id="muzzleL" cx="140" cy="82" r="2" fill="transparent"/>
+        </g>
+      </svg>
+    </div>
+    <div class="rabbit right" aria-hidden>
+      <svg viewBox="0 0 200 200" width="160" height="160">
+        <g transform="translate(10,8)">
+          <ellipse cx="62" cy="108" rx="44" ry="44" fill="#fff" stroke="#d46" stroke-width="3"/>
+          <ellipse cx="40" cy="82" rx="30" ry="36" fill="#fff" stroke="#d46" stroke-width="3"/>
+          <circle cx="35" cy="68" r="6" fill="#2d2d2d"/>
+          <path d="M78 72 L120 72 L140 82 L120 92 L78 92 z" fill="#333" />
+          <circle id="muzzleR" cx="140" cy="82" r="2" fill="transparent"/>
+        </g>
+      </svg>
+    </div>
+    <canvas id="heartCanvas" width="980" height="640"></canvas>
+    <div class="center">
+      <div class="qr-wrap">
+        <div id="qrcode" class="qr"></div>
+      </div>
+      <div class="controls">
+        <button id="downloadBtn" class="btn small">Descargar QR</button>
+        <button id="regenBtn" class="btn small" style="background:var(--rose)">Regenerar</button>
+      </div>
+    </div>
+    <div class="note">Este QR abre: <code>https://mipagina-de-amor.com</code></div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    const targetUrl = 'https://mipagina-de-amor.com';
+    const qrContainer = document.getElementById('qrcode');
+    function makeQR(url){
+      qrContainer.innerHTML = '';
+      new QRCode(qrContainer, {
+        text: url,
+        width: 420,
+        height: 420,
+        colorDark: '#220b11',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+    makeQR(targetUrl);
+    document.getElementById('downloadBtn').addEventListener('click', ()=>{
+      const el = qrContainer.querySelector('img') || qrContainer.querySelector('canvas');
+      if(!el) return alert('QR no disponible');
+      const src = el.tagName==='IMG' ? el.src : el.toDataURL();
+      const a = document.createElement('a'); a.href = src; a.download = 'qr-corazon.png'; a.click();
+    });
+    document.getElementById('regenBtn').addEventListener('click', ()=>{ makeQR(targetUrl); });
+    const canvas = document.getElementById('heartCanvas');
+    const ctx = canvas.getContext('2d');
+    const stage = document.querySelector('.stage');
+    function resize(){
+      const rect = stage.getBoundingClientRect();
+      canvas.width = rect.width; canvas.height = rect.height;
+    }
+    resize(); window.addEventListener('resize', resize);
+    function getMuzzlePos(id){
+      const el = document.getElementById(id);
+      const r = el.getBoundingClientRect();
+      const s = stage.getBoundingClientRect();
+      return {x: r.x + r.width/2 - s.x, y: r.y + r.height/2 - s.y};
+    }
+    function heartPoint(t, size, cx, cy){
+      const x = 16*Math.pow(Math.sin(t),3);
+      const y = - (13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t));
+      return {x: cx + x*size, y: cy + y*size};
+    }
+    let heartTargets = [];
+    function buildTargets(){
+      heartTargets = [];
+      const w = canvas.width, h = canvas.height;
+      const cx = w/2, cy = h/2 + 20;
+      const size = Math.min(w,h)/45;
+      for(let t=0;t<Math.PI*2;t+=0.06){
+        const p = heartPoint(t,size,cx,cy);
+        for(let r=0;r<6;r++){
+          heartTargets.push({x: p.x + (Math.random()-0.5)*20, y: p.y + (Math.random()-0.5)*20});
+        }
+      }
+      for(let i=heartTargets.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[heartTargets[i],heartTargets[j]]=[heartTargets[j],heartTargets[i]]}
+    }
+    buildTargets(); window.addEventListener('resize', buildTargets);
+    let textTargets = [];
+    function buildTextTargets(){
+      textTargets = [];
+      const w = canvas.width, h = canvas.height;
+      const off = document.createElement('canvas'); off.width = w; off.height = h; const octx = off.getContext('2d');
+      octx.clearRect(0,0,w,h);
+      octx.font = 'bold 86px serif'; octx.textAlign='center'; octx.fillStyle='black';
+      octx.fillText('TE AMO', w/2, h/4);
+      const data = octx.getImageData(0,0,w,h).data;
+      const step = 8;
+      for(let y=0;y<h;y+=step){
+        for(let x=0;x<w;x+=step){
+          const idx = (y*w + x)*4;
+          if(data[idx+3] > 128){
+            textTargets.push({x,y});
+          }
+        }
+      }
+      if(textTargets.length>800){
+        textTargets = textTargets.filter((_,i)=>i%Math.ceil(textTargets.length/800)!=0);
+      }
+    }
+    buildTextTargets(); window.addEventListener('resize', buildTextTargets);
+    class Particle{
+      constructor(x,y,tx=null){
+        this.x=x; this.y=y; this.vx=(Math.random()-0.5)*1.2; this.vy=(Math.random()-0.7)*1.2; this.size=6+Math.random()*6; this.life=0; this.maxLife=4000; this.tx=tx; this.color = `hsl(${330+Math.random()*30},80%,60%)`;
+      }
+      update(dt){
+        this.life += dt;
+        if(this.tx){
+          const dx = this.tx.x - this.x, dy=this.tx.y - this.y; const d=Math.sqrt(dx*dx+dy*dy)||1;
+          this.vx += (dx/d)*0.15; this.vy += (dy/d)*0.15;
+          this.vx *= 0.96; this.vy *= 0.96;
+        } else {
+          this.vx *= 0.995; this.vy += 0.02;
+        }
+        this.x += this.vx; this.y += this.vy;
+      }
+      draw(ctx){
+        ctx.save(); ctx.translate(this.x,this.y);
+        ctx.rotate((this.life/1000));
+        ctx.beginPath();
+        ctx.moveTo(0, -this.size/3);
+        ctx.bezierCurveTo(-this.size/1.2, -this.size/1.6, -this.size, this.size/3, 0, this.size);
+        ctx.bezierCurveTo(this.size, this.size/3, this.size/1.2, -this.size/1.6, 0, -this.size/3);
+        ctx.closePath();
+        ctx.fillStyle = this.color; ctx.fill();
+        ctx.restore();
+      }
+    }
+    const particles = [];
+    let last = performance.now();
+    function emitFrom(muzzle, count, targetPool){
+      for(let i=0;i<count;i++){
+        const angle = (Math.random()-0.5)*0.4;
+        const speed = 3 + Math.random()*3;
+        const p = new Particle(muzzle.x + (Math.random()-0.5)*6, muzzle.y + (Math.random()-0.5)*6);
+        p.vx = Math.cos(angle)*speed * (muzzle.side==='left' ? 1 : -1);
+        p.vy = -Math.random()*2 - 1.2;
+        if(Math.random() < 0.22 && textTargets.length){
+          p.tx = textTargets[Math.floor(Math.random()*textTargets.length)];
+        } else if(targetPool && targetPool.length){
+          p.tx = targetPool[Math.floor(Math.random()*targetPool.length)];
+        }
+        particles.push(p);
+      }
+    }
+    function loop(){
+      const now = performance.now(); const dt = now - last; last = now;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      const mL = getMuzzlePos('muzzleL'); mL.side='left'; const mR = getMuzzlePos('muzzleR'); mR.side='right';
+      if(Math.random() < 0.6) emitFrom(mL, 2, heartTargets);
+      if(Math.random() < 0.6) emitFrom(mR, 2, heartTargets);
+      for(let i=particles.length-1;i>=0;i--){
+        const p = particles[i];
+        p.update(dt/16);
+        p.draw(ctx);
+        if(p.tx){
+          const dx=p.tx.x-p.x, dy=p.tx.y-p.y; if(Math.hypot(dx,dy) < 6){ p.vx*=0.3; p.vy*=0.3; }
+        }
+        if(p.x < -100 || p.x > canvas.width+100 || p.y > canvas.height+120 || p.life>15000) particles.splice(i,1);
+      }
+      ctx.save(); ctx.globalAlpha=0.08; ctx.beginPath();
+      const cx = canvas.width/2, cy = canvas.height/2 + 20; const size = Math.min(canvas.width,canvas.height)/30;
+      for(let t=0;t<=Math.PI*2;t+=0.02){ const p=heartPoint(t,size,cx,cy); if(t===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); }
+      ctx.closePath(); ctx.fillStyle='#ff336688'; ctx.fill(); ctx.restore();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+    function drawLoveText(){
+      const el = document.getElementById('loveText'); el.innerHTML = '';
+      const wrapper = document.createElement('div'); wrapper.style.position='relative'; wrapper.style.width='100%'; wrapper.style.height='80px';
+      const s = stage.getBoundingClientRect();
+      textTargets.slice(0,220).forEach(pt=>{
+        const heart = document.createElement('div');
+        heart.style.position='absolute'; heart.style.left = (pt.x) + 'px'; heart.style.top = (pt.y - 40) + 'px';
+        heart.style.width='8px'; heart.style.height='8px'; heart.style.pointerEvents='none';
+        heart.style.transform='translate(-50%,-50%) scale(0.9) rotate('+ (Math.random()*30-15) + 'deg)';
+        heart.style.backgroundImage = 'radial-gradient(circle at 40% 30%, #fff 0%, transparent 30%), linear-gradient(45deg,#ff7aa0,#ff3b6b)';
+        heart.style.clipPath = 'path("M4 1 C6 0 8 2 8 4 C8 6 6 7 4 9 C2 7 0 6 0 4 C0 2 2 0 4 1 Z")';
+        heart.style.borderRadius = '50%';
+        el.appendChild(heart);
+      });
+    }
+    setTimeout(drawLoveText,700);
+    setTimeout(()=>{resize(); buildTargets(); buildTextTargets();},400);
+  </script>
+</body>
+</html>
